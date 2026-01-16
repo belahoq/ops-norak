@@ -436,8 +436,16 @@
             });
             const d = await res.json();
             if(res.ok) {
-                addToHistory(judul, d.url || `https://draft.blogger.com/blog/posts/${blogId}`, isDraft);
-                document.getElementById('status_msg').innerHTML = `<div class='alert alert-success'>✅ Sukses! Artikel masuk Draft.</div>`;
+                // Ganti link 'draft' menjadi 'www'
+const editLink = `https://www.blogger.com/blog/posts/${blogId}`;
+
+addToHistory(judul, d.url || editLink, isDraft);
+
+document.getElementById('status_msg').innerHTML = `
+    <div class='alert alert-success'>
+        ✅ <b>Sukses!</b> Artikel "<i>${judul}</i>" tersimpan di Draft.<br>
+        <a href="${editLink}" target="_blank" style="font-weight:bold;">👉 Buka Dashboard Blogger</a>
+    </div>`;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if(!document.getElementById('btnDirect').disabled) resetForm();
             } else { alert("Gagal: " + d.error.message); }
