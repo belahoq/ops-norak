@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👿 AI Blog Monster (Special OPS)</title>
+    <title>👿 AI Blog Monster (Tier 1 Polyglot)</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
     <style>
@@ -58,7 +58,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 AI Blog Monster (Special OPS)</h2>
+    <h2>🚀 AI Blog Monster (Tier 1 Polyglot)</h2>
     <div id="status_msg"></div>
 
     <div id="login-section" style="text-align: center; padding: 60px;">
@@ -92,13 +92,13 @@
         </div>
 
         <div class="box">
-            <input type="text" id="judul" placeholder="Topik Utama / Kata Kunci (Misal: Tips Mengajar Efektif)">
+            <input type="text" id="judul" placeholder="Topik Utama (Boleh Indo, nanti diterjemahkan otomatis)">
             
             <div class="checkbox-wrapper">
                 <input type="checkbox" id="auto_bing_image" checked>
                 <div style="flex:1;">
                     <b>🔍 Auto-Cari Gambar Header (Bing)</b><br>
-                    <small style="color:#666;">Gambar utama di paling atas artikel.</small>
+                    <small style="color:#666;">Script akan mencari gambar sesuai bahasa target.</small>
                 </div>
             </div>
 
@@ -113,20 +113,30 @@
 
             <select id="cat_select" onchange="toggleManualCat()">
                 <option value="" disabled selected>-- Pilih Kategori --</option>
-                <option value="Kegiatan Sekolah">Kegiatan Sekolah</option>
-                <option value="Prestasi">Prestasi</option>
-                <option value="Artikel">Artikel</option>
+                <option value="School Life">School Life</option>
+                <option value="Education">Education</option>
+                <option value="News">News</option>
                 <option value="NEW">➕ Tambah Baru...</option>
             </select>
             <input type="text" id="cat_manual" class="hidden" placeholder="Nama Kategori Baru...">
             
-            <textarea id="desc_gambar" style="height:80px;" placeholder="Instruksi tambahan..."></textarea>
+            <textarea id="desc_gambar" style="height:80px;" placeholder="Instruksi tambahan (Boleh Bahasa Indonesia)..."></textarea>
             
+            <label style="font-size:12px; font-weight:bold;">BAHASA ARTIKEL (TARGET LANGUAGE):</label>
+            <select id="target_lang" style="border: 2px solid #27ae60; background: #f0fff4; font-weight:bold; margin-bottom: 10px;">
+                <option value="Indonesian">🇮🇩 Indonesia (Default)</option>
+                <option value="English">🇺🇸 English (Tier 1 - Global)</option>
+                <option value="German">🇩🇪 German (Deutsch - Tier 1)</option>
+                <option value="French">🇫🇷 French (Français - Tier 1)</option>
+                <option value="Spanish">🇪🇸 Spanish (Español - Tier 1)</option>
+                <option value="Dutch">🇳🇱 Dutch (Nederlands - Tier 1)</option>
+            </select>
+
             <label style="font-size:12px; font-weight:bold;">MODE PENULISAN:</label>
             <select id="mode_penulisan" style="border: 2px solid #8e44ad; background: #fbf4ff; font-weight:bold;">
                 <option value="SPECIAL_OPS">😈 SPECIAL OPS (Text + Auto Inject Image H2)</option>
                 <option value="CLICKBAIT">🔥 SEO Clickbait (Viral)</option>
-                <option value="DEFAULT">📰 Berita Formal (Sekolah)</option>
+                <option value="DEFAULT">📰 Berita Formal (Standard)</option>
                 <option value="TUTORIAL">🛠️ Tutorial / Panduan</option>
             </select>
             
@@ -194,12 +204,11 @@
     function handleAuthClick() { tokenClient.requestAccessToken(); }
     function doLogout() { google.accounts.oauth2.revoke(accessToken, ()=>{}); location.reload(); }
 
-    // --- FUNGSI PEMBUAT CAPTION (Max 8 Kata) ---
     function makeCaption(text) {
-        return text.split(/\s+/).slice(0, 8).join(" ");
+        return text.split(/\s+/).slice(0, 12).join(" ");
     }
 
-    // --- 1. FITUR FETCH INTERNAL LINK (REAL) ---
+    // --- 1. FITUR FETCH INTERNAL LINK ---
     async function fetchExistingPosts() {
         const blogId = document.getElementById('blog_select').value;
         const statusDiv = document.getElementById('link_status');
@@ -232,6 +241,7 @@
         const apiKey = document.getElementById('api_key_input').value;
         const model = document.getElementById('model_select').value;
         const mode = document.getElementById('mode_penulisan').value; 
+        const targetLang = document.getElementById('target_lang').value; // Ambil Bahasa
         const autoBing = document.getElementById('auto_bing_image').checked;
         
         const btnMain = directToBlogger ? document.getElementById('btnDirect') : document.getElementById('btnPreview');
@@ -246,65 +256,71 @@
         let internalLinkContext = "";
         if(existingPosts.length > 0) {
             const sample = existingPosts.sort(() => 0.5 - Math.random()).slice(0, 20);
-            internalLinkContext = "\nDAFTAR ARTIKEL YANG SUDAH ADA DI BLOG INI (Gunakan URL ASLI ini untuk Internal Link jika relevan, JANGAN PAKAI URL PALSU):\n";
-            sample.forEach(p => { internalLinkContext += `- Judul: ${p.title} | URL: ${p.url}\n`; });
+            internalLinkContext = "\nEXISTING ARTICLES FOR INTERNAL LINKING (Insert 1-3 relevant links if possible):\n";
+            sample.forEach(p => { internalLinkContext += `- Title: ${p.title} | URL: ${p.url}\n`; });
         }
 
-        // B. SIAPKAN PROMPT
+        // B. SIAPKAN PROMPT (DITERJEMAHKAN KE KONTEKS GLOBAL)
         let customPrompt = "";
-        let baseStructure = "Gunakan <h2>, <h3>, <p>, <ul>/<ol>. JANGAN pakai bintang (**). Gunakan <b>.";
+        let baseStructure = "Use <h2>, <h3>, <p>, <ul>/<ol>. DO NOT use markdown like (**). Use <b> for bold.";
 
         if (mode === 'SPECIAL_OPS') {
             customPrompt = `
             MODE: SPECIAL OPS (DEEP & VISUAL).
-            GAYA: Profesional, Mendalam, tapi mudah dipahami.
-            JUDUL OUTPUT [TITLE]: Judul yang kuat, mengandung keyword, tidak alay.
-            STRUKTUR:
-            - Pendahuluan yang kuat (2-3 paragraf).
-            - WAJIB Gunakan minimal 4 buah Heading 2 (<h2>) yang spesifik untuk sub-topik.
-            - Isi setiap sub-topik dengan detail.
-            - Akhiri artikel dengan kesimpulan yang natural TANPA menggunakan heading 'Kesimpulan' atau semacamnya. Buat penutup yang mengalir.
-            - Hindari pola kalimat yang kaku atau membosankan agar tidak terlihat saturated antar artikel
+            STYLE: Professional, In-depth, but easy to understand.
+            OUTPUT TITLE [TITLE]: Strong title, containing keywords, not clickbaity.
+            STRUCTURE:
+            - Strong Introduction (2-3 paragraphs).
+            - MANDATORY: Use at least 4 specific Heading 2 (<h2>) for sub-topics.
+            - Fill each sub-topic with detailed information.
+            - Conclusion that summarizes well.
+            - Avoid repetitive sentence patterns.
             `;
         } else if (mode === 'CLICKBAIT') {
             customPrompt = `
             MODE: SEO VIRAL (CLICKBAIT).
-            GAYA: Santai, Emosional, Mengundang Penasaran.
-            JUDUL OUTPUT [TITLE]: Clickbait sopan, bikin orang ingin klik.
-            STRUKTUR: Pendahuluan panjang (hook), kalimat pendek-pendek.
+            STYLE: Casual, Emotional, Spark Curiosity.
+            OUTPUT TITLE [TITLE]: Polite clickbaity, makes people want to click.
+            STRUCTURE: Long introduction (hook), short sentences.
             `;
         } else if (mode === 'DEFAULT') {
             customPrompt = `
-            MODE: BERITA SEKOLAH RESMI.
-            GAYA: Formal, Baku (EYD), Jurnalistik.
-            JUDUL OUTPUT [TITLE]: Tegas, Informatif.
-            STRUKTUR: 5W+1H.
+            MODE: FORMAL NEWS / STANDARD.
+            STYLE: Formal, Journalistic, Objective.
+            OUTPUT TITLE [TITLE]: Concise, Informative.
+            STRUCTURE: 5W+1H (Who, What, Where, When, Why, How).
             `;
         } else if (mode === 'TUTORIAL') {
             customPrompt = `
-            MODE: TUTORIAL / PANDUAN.
-            GAYA: Instruksional, Step-by-step.
-            JUDUL OUTPUT [TITLE]: Format "Cara...", "Panduan...".
-            STRUKTUR: Alat/Bahan, Langkah-langkah (List).
+            MODE: TUTORIAL / GUIDE.
+            STYLE: Instructional, Step-by-step.
+            OUTPUT TITLE [TITLE]: Format "How to...", "Guide to...".
+            STRUCTURE: Tools/Materials, Steps (List), Tips.
             `;
         }
 
+        // --- INI KUNCI UTAMA FITUR POLYGLOT ---
         let prompt = `
-        BERTINDAKLAH SEBAGAI PENULIS BLOG PROFESIONAL.
+        ACT AS A PROFESSIONAL BLOG WRITER.
+        
+        *** IMPORTANT INSTRUCTION ***
+        WRITE THE ENTIRE ARTICLE IN THIS LANGUAGE: ${targetLang}.
+        EVEN IF THE INPUT TOPIC IS IN INDONESIAN, YOU MUST TRANSLATE AND WRITE THE OUTPUT IN ${targetLang}.
+        *****************************
+
         ${customPrompt}
 
-        TUGAS: Buat artikel HTML Murni (Tanpa Markdown) minimal 700 kata tentang: "${judul}".
+        TOPIC/KEYWORD: "${judul}" (Source might be Indonesian, convert to ${targetLang}).
+        CONTEXT FROM USER: "${desc}"
         
-        FORMAT OUTPUT WAJIB:
-        1. [TITLE]: (Isi judul)
-        2. [META_DESC]: (Deskripsi SEO)
-        3. [TAGS]: (Tag relevan)
-        4. (Isi Artikel HTML...)
+        MANDATORY OUTPUT FORMAT:
+        1. [TITLE]: (Title in ${targetLang})
+        2. [META_DESC]: (SEO Description in ${targetLang}, max 150 chars)
+        3. [TAGS]: (Relevant tags in ${targetLang}, comma separated)
+        4. (Article Content HTML in ${targetLang}...)
            ${baseStructure}
         
         ${internalLinkContext}
-        
-        KONTEKS USER: "${desc}"
         `;
 
         let resultText = "";
@@ -384,7 +400,7 @@
         btnMain.innerText = directToBlogger ? "🚀 Generate & Langsung Draft" : "✨ Preview";
     }
 
-    // --- 3. FUNGSI SUNTIK GAMBAR H2 (SPECIAL OPS CORE) ---
+    // --- 3. FUNGSI SUNTIK GAMBAR H2 ---
     async function injectImagesIntoContent(htmlContent) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, 'text/html');
