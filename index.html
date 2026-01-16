@@ -84,8 +84,6 @@
                 <button onclick="fetchModels()" id="btn_cek" class="btn btn-orange" style="margin:0;">🔌 Cek</button>
             </div>
             
-            <input type="password" id="bing_script_url" placeholder="URL Script Bing Scraper (Wajib untuk Special OPS)..." style="margin-bottom:10px;">
-
             <div style="display:flex; gap:10px;">
                 <select id="model_select" style="margin:0;"><option disabled selected>-- Pilih Model --</option></select>
                 <select id="blog_select" style="margin:0;" onchange="fetchExistingPosts()"><option disabled selected>Loading Blog...</option></select>
@@ -156,20 +154,22 @@
 </div>
 
 <script>
-    // --- KONFIGURASI ---
+    // --- KONFIGURASI UTAMA ---
     const CLIENT_ID = '763331219607-vv1dd6jksep9utgs337idu67i57j6baa.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/blogger';
+    
+    // --- LINK SAKTI GAS BING SCRAPER (HARDCODED) ---
+    const BING_SCRAPER_URL = "https://script.google.com/macros/s/AKfycbx15NwwaBSAG9jIQPE5cFPupZ2aXubZMVQCet78Z0xQ2Eddbsp2N-6SAUSIh7X6n3dzuQ/exec";
     
     let tokenClient, accessToken = null;
     let globalBase64Img = ""; 
     let currentProvider = "GEMINI"; 
-    let existingPosts = []; // Menyimpan data artikel lama untuk Internal Link
+    let existingPosts = []; 
 
     // --- INIT ---
     window.onload = function() {
         switchProvider('GEMINI'); 
-        if(localStorage.getItem('bing_script_url')) document.getElementById('bing_script_url').value = localStorage.getItem('bing_script_url');
-
+        
         tokenClient = google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID, scope: SCOPES,
             callback: (resp) => {
@@ -194,6 +194,11 @@
     function handleAuthClick() { tokenClient.requestAccessToken(); }
     function doLogout() { google.accounts.oauth2.revoke(accessToken, ()=>{}); location.reload(); }
 
+    // --- FUNGSI PEMBUAT CAPTION (Max 8 Kata) ---
+    function makeCaption(text) {
+        return text.split(/\s+/).slice(0, 8).join(" ");
+    }
+
     // --- 1. FITUR FETCH INTERNAL LINK (REAL) ---
     async function fetchExistingPosts() {
         const blogId = document.getElementById('blog_select').value;
@@ -203,7 +208,6 @@
         statusDiv.innerHTML = "⏳ Mengambil data artikel lama untuk internal link...";
         
         try {
-            // Ambil 50 post terakhir
             const res = await fetch(`https://www.googleapis.com/blogger/v3/blogs/${blogId}/posts?status=LIVE&maxResults=50`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
@@ -228,22 +232,19 @@
         const apiKey = document.getElementById('api_key_input').value;
         const model = document.getElementById('model_select').value;
         const mode = document.getElementById('mode_penulisan').value; 
-        const bingScriptUrl = document.getElementById('bing_script_url').value;
         const autoBing = document.getElementById('auto_bing_image').checked;
         
         const btnMain = directToBlogger ? document.getElementById('btnDirect') : document.getElementById('btnPreview');
         
         if(!apiKey || !model || !judul) return alert("Data belum lengkap!");
-        if(bingScriptUrl) localStorage.setItem('bing_script_url', bingScriptUrl);
 
         btnMain.innerText = `⏳ AI Bekerja (${currentProvider})...`; 
         btnMain.disabled = true;
         if(directToBlogger) document.getElementById('btnPreview').disabled = true;
 
-        // A. SIAPKAN DATA INTERNAL LINK UNTUK DIKIRIM KE AI
+        // A. SIAPKAN DATA INTERNAL LINK
         let internalLinkContext = "";
         if(existingPosts.length > 0) {
-            // Pilih acak 20 link biar prompt ga kepanjangan
             const sample = existingPosts.sort(() => 0.5 - Math.random()).slice(0, 20);
             internalLinkContext = "\nDAFTAR ARTIKEL YANG SUDAH ADA DI BLOG INI (Gunakan URL ASLI ini untuk Internal Link jika relevan, JANGAN PAKAI URL PALSU):\n";
             sample.forEach(p => { internalLinkContext += `- Judul: ${p.title} | URL: ${p.url}\n`; });
@@ -329,10 +330,8 @@
             }
 
             if(resultText) {
-                // Bersihkan Output
                 resultText = resultText.replace(/```html/gi, '').replace(/```/g, '').replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
 
-                // Parsing Metadata
                 let finalTitle = judul;
                 let finalTags = [];
                 let finalContent = resultText;
@@ -347,18 +346,19 @@
                 if(tagsMatch) { finalTags = tagsMatch[1].split(',').map(t => t.trim()); finalContent = finalContent.replace(tagsMatch[0], ''); }
 
                 // --- D. LOGIC SPECIAL OPS (AUTO INJECT IMAGE H2) ---
-                if (mode === 'SPECIAL_OPS' && bingScriptUrl) {
+                if (mode === 'SPECIAL_OPS') {
                     btnMain.innerText = "🕵️ OPS: Menyuntikkan Gambar...";
-                    finalContent = await injectImagesIntoContent(finalContent, bingScriptUrl);
+                    finalContent = await injectImagesIntoContent(finalContent);
                 }
 
                 // --- E. HEADER IMAGE (AUTO BING) ---
-                if(autoBing && bingScriptUrl) {
+                if(autoBing) {
                     try {
-                        const imgRes = await fetch(bingScriptUrl, { method: 'POST', mode: 'cors', body: JSON.stringify({ query: finalTitle }) });
+                        const imgRes = await fetch(BING_SCRAPER_URL, { method: 'POST', mode: 'cors', body: JSON.stringify({ query: finalTitle }) });
                         const imgData = await imgRes.json();
                         if(imgData.status === "success" && imgData.url) {
-                            finalContent = `<div style="text-align:center; margin-bottom:20px;"><img src="${imgData.url}" alt="${finalTitle}" style="max-width:100%; border-radius:8px;" /><br><small><i>Sumber: Bing Images</i></small></div><hr/>` + finalContent;
+                            const captionOtomatis = makeCaption(finalTitle);
+                            finalContent = `<div style="text-align:center; margin-bottom:20px;"><img src="${imgData.url}" alt="${finalTitle}" style="max-width:100%; border-radius:8px;" /><br><small><i>${captionOtomatis}</i></small></div><hr/>` + finalContent;
                         }
                     } catch(e) { console.log("Header img fail"); }
                 }
@@ -385,40 +385,32 @@
     }
 
     // --- 3. FUNGSI SUNTIK GAMBAR H2 (SPECIAL OPS CORE) ---
-    async function injectImagesIntoContent(htmlContent, scriptUrl) {
-        // Parse HTML string jadi DOM sementara
+    async function injectImagesIntoContent(htmlContent) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, 'text/html');
         const h2s = doc.querySelectorAll('h2');
-        
-        // Batasi maksimal 4 gambar
         const limit = Math.min(h2s.length, 4); 
         
-        // Loop H2 dan cari gambar untuk masing-masing
         for (let i = 0; i < limit; i++) {
             const h2Text = h2s[i].innerText;
-            if(h2Text.length < 5) continue; // Skip judul kependekan
+            if(h2Text.length < 5) continue; 
 
             try {
-                // Cari gambar spesifik untuk sub-judul ini
-                const res = await fetch(scriptUrl, {
+                const res = await fetch(BING_SCRAPER_URL, {
                     method: 'POST', mode: 'cors', body: JSON.stringify({ query: h2Text })
                 });
                 const data = await res.json();
                 
                 if(data.status === 'success' && data.url) {
-                    // Buat elemen gambar
+                    const captionH2 = makeCaption(h2Text);
                     const div = doc.createElement('div');
                     div.style.textAlign = "center";
                     div.style.margin = "15px 0";
-                    div.innerHTML = `<img src="${data.url}" alt="${h2Text}" style="max-width:100%; height:auto; border-radius:6px;" loading="lazy">`;
-                    
-                    // Sisipkan SETELAH H2
+                    div.innerHTML = `<img src="${data.url}" alt="${h2Text}" style="max-width:100%; height:auto; border-radius:6px;" loading="lazy"><br><small><i>${captionH2}</i></small>`;
                     h2s[i].parentNode.insertBefore(div, h2s[i].nextSibling);
                 }
             } catch(e) { console.log("Skip img injection for: " + h2Text); }
         }
-        
         return doc.body.innerHTML;
     }
 
@@ -436,16 +428,13 @@
             });
             const d = await res.json();
             if(res.ok) {
-                // Ganti link 'draft' menjadi 'www'
-const editLink = `https://www.blogger.com/blog/posts/${blogId}`;
-
-addToHistory(judul, d.url || editLink, isDraft);
-
-document.getElementById('status_msg').innerHTML = `
-    <div class='alert alert-success'>
-        ✅ <b>Sukses!</b> Artikel "<i>${judul}</i>" tersimpan di Draft.<br>
-        <a href="${editLink}" target="_blank" style="font-weight:bold;">👉 Buka Dashboard Blogger</a>
-    </div>`;
+                const editLink = `https://www.blogger.com/blog/posts/${blogId}`;
+                addToHistory(judul, d.url || editLink, isDraft);
+                document.getElementById('status_msg').innerHTML = `
+                <div class='alert alert-success'>
+                    ✅ <b>Sukses!</b> Artikel "<i>${judul}</i>" tersimpan di Draft.<br>
+                    <a href="${editLink}" target="_blank" style="font-weight:bold;">👉 Buka Dashboard Blogger</a>
+                </div>`;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if(!document.getElementById('btnDirect').disabled) resetForm();
             } else { alert("Gagal: " + d.error.message); }
@@ -528,7 +517,7 @@ document.getElementById('status_msg').innerHTML = `
                 data.items.forEach(b => { let opt = document.createElement('option'); opt.value = b.id; opt.text = b.name; sel.appendChild(opt); });
                 if(localStorage.getItem('blogger_blog_id')) {
                     sel.value = localStorage.getItem('blogger_blog_id');
-                    fetchExistingPosts(); // Langsung ambil post jika ada cache
+                    fetchExistingPosts(); 
                 }
             }
         } catch(e) {}
