@@ -59,7 +59,6 @@
         .indexing-options { display: flex; gap: 15px; margin-bottom: 10px; }
         .indexing-options label { font-weight: normal; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
         
-        /* Status Indexing Icon */
         .idx-status { display: inline-block; margin-left: 5px; font-size: 14px; }
         .idx-success { color: #27ae60; font-weight: bold; }
         .idx-fail { color: #c0392b; font-weight: bold; }
@@ -71,7 +70,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 AI Blog Monster (Tier 1 Polyglot + Hybrid)</h2>
+    <h2>🚀 AI Blog Monster (OPS Makin Manja😈😎)</h2>
     <div id="status_msg"></div>
 
     <div id="login-section" style="text-align: center; padding: 60px;">
@@ -233,24 +232,28 @@
     const SCOPES = 'https://www.googleapis.com/auth/blogger';
     const BING_SCRAPER_URL = "https://script.google.com/macros/s/AKfycbx15NwwaBSAG9jIQPE5cFPupZ2aXubZMVQCet78Z0xQ2Eddbsp2N-6SAUSIh7X6n3dzuQ/exec";
     
-    // --- SCRIPT AUTO INDEX DEFAULT (DATA PRIBADI) ---
-    // Simpan data Service Account dalam variable untuk dipakai logika backend
-    const SERVICE_ACCOUNT_DATA = {
-        "client_email": "index-sekolah@reliable-jet-478103-b9.iam.gserviceaccount.com",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDNUIpyRrNboiMJ\nhrmu0vGzJjacVyJH7VMgek6lq9aZWy7VMpwEVsRCMBWJ76seWKOIjyYeBH1Ts/nA\nwYg45ZE3VEyqiNF3TIXWiu1ZxVMTij2qbNx6iJBqsSVjanr3p9oefISjdLAhhcUY\n1ylPAacgzXTJmTuXwmeDK1lcaU26sYWl9KJB9/E+cD6K1jBSsfP2Yu1FFK1GBD69\nVz1V5ZJCjiuMw/+hG9tAxU5Ev0tmTzx/M9PJmktINT/Iw5MXuAPsMtXZkuCI3tzw\n0EMSoKii2adH+Pp4K08vCHID6tMxCgYwkzCox4J+8bU2IWM52vAlZ0QheNCO+KFU\nDaS6zIpDAgMBAAECggEAGWPK4yvkFUJdM9nhz4FNm3pvyXCrEBsEqyEE5c70yF0y\n0vGhwpWaSpcYqsilMCkE/Ce7rn2epAG/MnucZXDaPu3hVzt5L9gaOvhONspEpkdz\nrcYtk8ecmF0UwxERaNvsiNWcL3yIJXUd9R7ygE8zhEZ0GVQmPvOvClULhXaOQrZl\nicawiHtzaAVjCMED+AKMe6pK9cofgFmHpHViL9QZ/vKXd+0Q27YelATjqG463D1u\nHXFugAu9YnUQv9OPcbY3fPY1MUJ8JVKeE6AiitQ9fyC/7wIGXQvtQDJ23itsJYbm\nS/xgondri1+tyaueuSdfHhkkH5WRMLM0+SSJ0kN/gQKBgQDxbgDBiwxnLLOcARo0\nO2zWhSH9EV4MnHSxtbsWFEPuDupDBWRTPWH13pM1pOkIGnez0hwrJhVy5RcBZvzw\n73mDQIOYbOUdQ4JfoQxRNjqB5Oj1KVWXF0q1sgQkMh2SdVHFbHPbDqFFiylQfdxn\noTjXfdFPm6L982VxD8JS/ymjwwKBgQDZtJLQ1iEBJ5YIi4iBi/wd5MactsRPwIoi\nR89+em6mLKQRo6Sy2zC8A/i2TGsP12LGk1zugsFWWfmkpkd4R47WvZqr8ygObGUd\ntGVqCUqk7AS4YbMXWGca5eFRoytrsZgyhhhVfxvcfauk0Lyfltx+KWLO5SToqb7C\nBAeAlVOXgQKBgBHpNUkmha8J0/FY65bAadyoV9MsfKu217lvYAfNTRTWKm76cWzz\netcAwi8Sou8k94hxqAFTe/fgIwrJly5QtdUU7i5atcyr+3oYuo8z1LdaQiYeAOmK\notJD+KauyR7acUySNS4lMbW1E0WTcMyHW24xOVwMkdUBP59ZqfL6Vx59AoGASASk\nTNGJOYiO6WS/U5urW3hC+7S6XGelSpHW4lA+Klq6K9umsEQyawAlVqkRAbyOwIIf\nTAeVTauWGhGnsvJ5HjC66gcWSS8yhBEZO2q3drddGGG5jQ+BjDRfxVHlG0s0vgH+\nKspRvS8ViQBEZcbSSioGtcq32v/MSwJqOO8tKAECgYEAowQAlu68Zt2hjSQojwyh\n/C6zud9VRvs1pTIL9EwXj3SXx7faEhAPvKLYlFZ3qm5iAFWwmZw34vBL/6EkEe+V\nShgaunDVgREY5gNIXK44m2RMa7Yn+RYO+7XDwHsDn79r1wIOLR+h2INtMsDZujuL\nI3Bqfg8M9BzPxib8BgDc7r0=\n-----END PRIVATE KEY-----\n"
-    };
-
-    // Ini adalah script 'dummy' untuk simulasi karena Browser tidak bisa langsung pakai Service Account
-    // Gantilah URL di fetch bawah ini dengan Endpoint Backend (GAS/Cloud Function) yang sebenarnya jika sudah ada.
+    // --- SCRIPT AUTO INDEX DEFAULT (VIA GAS MIDDLEWARE) ---
+    // URL GAS yang Bosku deploy tadi sudah ditanam di sini
     const DEFAULT_INDEX_SCRIPT = `
-        console.log("Memulai proses indexing untuk: " + url);
-        // Simulasi sukses untuk UX
-        document.getElementById('indexing_status_display').innerHTML = "Status: ⏳ Mengirim sinyal ke Google Indexing API...";
+        const endpoint = "https://script.google.com/macros/s/AKfycbyKLJu1R05cEeLlctloxHjhVCGqL3EeXLDYKDhnk1SqGiotOgeuroxqYVu4S4mQ1pyu/exec";
         
-        setTimeout(() => {
-             document.getElementById('indexing_status_display').innerHTML = "Status: ✅ <span class='idx-success'>Sukses! Sinyal Indexing Terkirim.</span>";
-             console.log("Indexing Signal Sent!");
-        }, 2000);
+        document.getElementById('indexing_status_display').innerHTML = "Status: ⏳ Menghubungi Satpam Indexing...";
+        
+        fetch(endpoint, {
+            method: "POST",
+            mode: "no-cors", // Penting untuk GAS
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: url, type: "URL_UPDATED" })
+        })
+        .then(() => {
+            // Karena mode 'no-cors', kita asumsikan terkirim.
+            document.getElementById('indexing_status_display').innerHTML = "Status: ✅ <span class='idx-success'>Sukses! Satpam sudah lapor ke Google.</span>";
+            console.log("Auto Indexing Signal Sent to GAS!");
+        })
+        .catch(e => {
+            document.getElementById('indexing_status_display').innerHTML = "Status: ❌ <span class='idx-fail'>Gagal lapor: " + e.message + "</span>";
+            console.error(e);
+        });
     `;
 
     let tokenClient, accessToken = null;
@@ -318,8 +321,6 @@
         if (scriptToRun && postUrl) {
             try {
                 const url = postUrl; 
-                // Disini kita jalankan logika indexing
-                // NOTE: Service Account Key ada di variabel SERVICE_ACCOUNT_DATA (bisa dipakai di script custom jika perlu)
                 eval(scriptToRun); 
                 
             } catch(e) {
