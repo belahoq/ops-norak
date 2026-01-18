@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👿 AI Blog Monster (Tier 1 Polyglot + Hybrid v31)</title>
+    <title>👿 AI Blog Monster (Tier 1 Polyglot + Hybrid + Auto Index)</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
     <style>
@@ -57,6 +57,10 @@
         .remove-btn { display: none; background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; margin-top: 5px; border: none; width: 100%; }
         .remove-btn:hover { background: #c0392b; }
 
+        /* Indexing Options Style */
+        .indexing-options { display: flex; gap: 15px; margin-bottom: 10px; }
+        .indexing-options label { font-weight: normal; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .loading-text { animation: pulse 1.5s infinite; font-weight: bold; color: #d35400; }
     </style>
@@ -64,7 +68,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 AI Blog Monster (Tier 1 Polyglot + Hybrid)</h2>
+    <h2>🚀 AI Blog Monster (Hybrid + Auto Index)</h2>
     <div id="status_msg"></div>
 
     <div id="login-section" style="text-align: center; padding: 60px;">
@@ -185,7 +189,25 @@
         </div>
 
         <div class="box">
-            <h4 style="margin-top:0; color:#666;">✏️ Editor</h4>
+            <h4 style="margin-top:0; color:#666;">✏️ Editor & Indexing</h4>
+            
+            <div style="background:#eafaf1; border:1px solid #27ae60; padding:10px; border-radius:6px; margin-bottom:15px;">
+                <label style="font-size:12px; font-weight:bold; color:#27ae60;">📡 AUTO INDEXING SETTINGS:</label>
+                <div class="indexing-options" style="margin-top:5px;">
+                    <label>
+                        <input type="radio" name="index_mode" value="default" checked onclick="toggleIndexing('default')"> 
+                        🌐 Default (Web Utama)
+                    </label>
+                    <label>
+                        <input type="radio" name="index_mode" value="custom" onclick="toggleIndexing('custom')"> 
+                        🔗 Custom (Web Lain)
+                    </label>
+                </div>
+                <div id="custom_index_box" class="hidden">
+                    <textarea id="custom_index_script" style="height:60px; font-family:monospace; font-size:12px;" placeholder="Paste Script Indexing (JavaScript) di sini..."></textarea>
+                </div>
+            </div>
+
             <textarea id="kontenEditor"></textarea>
             <button onclick="postToBlogger(true)" class="btn btn-yellow" style="margin-top:15px;">📂 Simpan ke DRAFT</button>
             <center style="margin-top:15px;"><a href="#" onclick="doLogout()" style="color:#c0392b; text-decoration:none; font-size:14px;">Logout</a></center>
@@ -207,11 +229,14 @@
     const SCOPES = 'https://www.googleapis.com/auth/blogger';
     const BING_SCRAPER_URL = "https://script.google.com/macros/s/AKfycbx15NwwaBSAG9jIQPE5cFPupZ2aXubZMVQCet78Z0xQ2Eddbsp2N-6SAUSIh7X6n3dzuQ/exec";
     
+    // --- SCRIPT AUTO INDEX DEFAULT (WEB UTAMA) ---
+    // Ganti URL di bawah ini dengan script indexing milik web utama Bosku
+    const DEFAULT_INDEX_SCRIPT = `console.log("Default Indexing triggered for: " + url); fetch("https://example.com/ping?url=" + encodeURIComponent(url));`;
+
     let tokenClient, accessToken = null;
     let globalBase64Img = ""; 
     let currentProvider = "GEMINI"; 
     let existingPosts = []; 
-    // ARRAY PENYIMPANAN GAMBAR MANUAL (Max 4)
     let manualUploadedImages = [null, null, null, null]; 
 
     // --- INIT ---
@@ -246,7 +271,45 @@
         return text.split(/\s+/).slice(0, 12).join(" ");
     }
 
-    // --- FITUR BARU: MANUAL UPLOAD & REMOVE ---
+    // --- FITUR AUTO INDEXING UI ---
+    function toggleIndexing(mode) {
+        const box = document.getElementById('custom_index_box');
+        if (mode === 'custom') {
+            box.classList.remove('hidden');
+        } else {
+            box.classList.add('hidden');
+        }
+    }
+
+    // --- FUNGSI EKSEKUSI INDEXING ---
+    function executeIndexing(postUrl) {
+        const mode = document.querySelector('input[name="index_mode"]:checked').value;
+        let scriptToRun = "";
+
+        if (mode === 'default') {
+            scriptToRun = DEFAULT_INDEX_SCRIPT;
+        } else {
+            scriptToRun = document.getElementById('custom_index_script').value;
+        }
+
+        if (scriptToRun && postUrl) {
+            try {
+                // Buat variabel 'url' agar bisa dibaca oleh script yang di-paste user
+                const url = postUrl; 
+                eval(scriptToRun); // PERINGATAN: Eval menjalankan string sebagai kode JS.
+                console.log("Indexing executed for:", url);
+                
+                // Tambahkan notifikasi kecil
+                const statusDiv = document.getElementById('status_msg');
+                statusDiv.innerHTML += `<div class='alert alert-info' style='margin-top:5px;'>📡 <b>Auto Index:</b> Sinyal terkirim ke satpam!</div>`;
+            } catch(e) {
+                console.error("Indexing Error:", e);
+                alert("Gagal menjalankan script indexing: " + e.message);
+            }
+        }
+    }
+
+    // --- FITUR MANUAL UPLOAD ---
     function handleManualUpload(input, index) {
         if (input.files && input.files[0]) {
             const reader = new FileReader();
@@ -258,11 +321,8 @@
                     const s = 800/img.width; 
                     c.width = 800; c.height = img.height * s; 
                     x.drawImage(img, 0, 0, c.width, c.height);
-                    
                     const base64String = c.toDataURL('image/jpeg', 0.7); 
                     manualUploadedImages[index] = base64String;
-
-                    // Show Thumb & Remove Btn
                     const thumb = document.getElementById(`manual_thumb_${index}`);
                     thumb.src = base64String;
                     thumb.style.display = "block";
@@ -274,14 +334,12 @@
     }
 
     function removeManualImage(index) {
-        manualUploadedImages[index] = null; // Hapus dari memori
-        document.getElementById(`file_input_${index}`).value = ""; // Reset input file
-        
+        manualUploadedImages[index] = null; 
+        document.getElementById(`file_input_${index}`).value = ""; 
         const thumb = document.getElementById(`manual_thumb_${index}`);
         thumb.src = "";
-        thumb.style.display = "none"; // Sembunyikan thumb
-        
-        document.getElementById(`remove_btn_${index}`).style.display = "none"; // Sembunyikan tombol hapus
+        thumb.style.display = "none"; 
+        document.getElementById(`remove_btn_${index}`).style.display = "none"; 
     }
 
     // --- 1. FITUR FETCH INTERNAL LINK ---
@@ -440,15 +498,12 @@
                 if(tagsMatch) { finalTags = tagsMatch[1].split(',').map(t => t.trim()); finalContent = finalContent.replace(tagsMatch[0], ''); }
 
                 // --- D. INJECTION LOGIC (PERFECT HYBRID) ---
-                // Cek apakah user ada upload manual
                 const hasManualImages = manualUploadedImages.some(img => img !== null);
 
                 if (hasManualImages) {
-                     // PRIORITAS 1: MANUAL INJECTION (BERLAKU UNTUK SEMUA MODE: DEFAULT, SPECIAL, DLL)
                     btnMain.innerText = "🖼️ Inject Gambar Manual...";
                     finalContent = await injectManualImages(finalContent);
                 } else if (mode === 'SPECIAL_OPS') {
-                    // PRIORITAS 2: BING SCRAPER (HANYA JIKA TIDAK ADA MANUAL IMAGE)
                     btnMain.innerText = "🕵️ OPS: Mencari Gambar Bing...";
                     finalContent = await injectImagesIntoContent(finalContent);
                 }
@@ -491,22 +546,15 @@
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, 'text/html');
         const h2s = doc.querySelectorAll('h2');
-        
-        // Filter hanya slot yang ada gambarnya
         const validImages = manualUploadedImages.filter(img => img !== null);
         
-        // Loop H2 dan suntikkan gambar manual berurutan
         for (let i = 0; i < h2s.length; i++) {
-            // Jika gambar manual habis, stop
             if (i >= validImages.length) break; 
-
             const h2Text = h2s[i].innerText;
             const captionH2 = makeCaption(h2Text);
             const div = doc.createElement('div');
             div.style.textAlign = "center";
             div.style.margin = "15px 0";
-            
-            // Pakai Base64 Image
             div.innerHTML = `<img src="${validImages[i]}" alt="${h2Text}" style="max-width:100%; height:auto; border-radius:6px;" loading="lazy"><br><small><i>${captionH2}</i></small>`;
             h2s[i].parentNode.insertBefore(div, h2s[i].nextSibling);
         }
@@ -523,13 +571,11 @@
         for (let i = 0; i < limit; i++) {
             const h2Text = h2s[i].innerText;
             if(h2Text.length < 5) continue; 
-
             try {
                 const res = await fetch(BING_SCRAPER_URL, {
                     method: 'POST', mode: 'cors', body: JSON.stringify({ query: h2Text })
                 });
                 const data = await res.json();
-                
                 if(data.status === 'success' && data.url) {
                     const captionH2 = makeCaption(h2Text);
                     const div = doc.createElement('div');
@@ -543,7 +589,7 @@
         return doc.body.innerHTML;
     }
 
-    // --- API BLOGGER ---
+    // --- API BLOGGER (AUTO INDEXING TRIGGERED HERE) ---
     async function sendToBloggerAPI(judul, konten, tags, isDraft) {
         const blogId = document.getElementById('blog_select').value;
         const btn = document.querySelector('.btn-yellow');
@@ -558,11 +604,17 @@
             const d = await res.json();
             if(res.ok) {
                 const editLink = `https://www.blogger.com/blog/posts/${blogId}`;
+                
+                // --- TRIGGER AUTO INDEXING JIKA URL ADA ---
+                if (d.url) {
+                    executeIndexing(d.url);
+                }
+
                 addToHistory(judul, d.url || editLink, isDraft);
                 document.getElementById('status_msg').innerHTML = `
                 <div class='alert alert-success'>
-                    ✅ <b>Sukses!</b> Artikel "<i>${judul}</i>" tersimpan di Draft.<br>
-                    <a href="${editLink}" target="_blank" style="font-weight:bold;">👉 Buka Dashboard Blogger</a>
+                    ✅ <b>Sukses!</b> Artikel "<i>${judul}</i>" tersimpan.<br>
+                    <a href="${editLink}" target="_blank" style="font-weight:bold;">👉 Buka Dashboard</a>
                 </div>`;
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if(!document.getElementById('btnDirect').disabled) resetForm();
@@ -671,12 +723,9 @@
         document.getElementById('judul').value = ""; document.getElementById('desc_gambar').value = "";
         document.getElementById('file_gambar').value = ""; document.getElementById('imgPreview').style.display = 'none';
         tinymce.get('kontenEditor').setContent(""); globalBase64Img = "";
-        
-        // RESET MANUAL IMAGES & BUTTONS (NEW)
         manualUploadedImages = [null, null, null, null];
         document.querySelectorAll('.manual-thumb').forEach(e => {
-            e.src = "";
-            e.style.display = 'none';
+            e.src = ""; e.style.display = 'none';
         });
         document.querySelectorAll('.remove-btn').forEach(e => e.style.display = 'none');
         document.querySelectorAll('.manual-item input').forEach(e => e.value = '');
