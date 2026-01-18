@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👿 AI Blog Monster (Tier 1 Polyglot)</title>
+    <title>👿 AI Blog Monster (Tier 1 Polyglot + Hybrid img)</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
     <style>
@@ -50,7 +50,11 @@
         
         .preview-img { max-height: 150px; display: none; margin: 10px auto; border-radius: 6px; border: 2px solid #eee; }
         
-        /* Loading Animation */
+        /* New Style for Manual Upload Grid */
+        .manual-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .manual-item { background: white; padding: 10px; border: 1px dashed #bbb; border-radius: 6px; text-align: center; }
+        .manual-thumb { width: 100%; height: 80px; object-fit: cover; border-radius: 4px; display: none; margin-top: 5px; }
+
         @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         .loading-text { animation: pulse 1.5s infinite; font-weight: bold; color: #d35400; }
     </style>
@@ -58,7 +62,7 @@
 <body>
 
 <div class="container">
-    <h2>🚀 AI Blog Monster (Tier 1 Polyglot)</h2>
+    <h2>🚀 AI Blog Monster (Hybrid)</h2>
     <div id="status_msg"></div>
 
     <div id="login-section" style="text-align: center; padding: 60px;">
@@ -98,17 +102,14 @@
                 <input type="checkbox" id="auto_bing_image" checked>
                 <div style="flex:1;">
                     <b>🔍 Auto-Cari Gambar Header (Bing)</b><br>
-                    <small style="color:#666;">Script akan mencari gambar sesuai bahasa target.</small>
+                    <small style="color:#666;">Script akan mencari gambar header sesuai bahasa target.</small>
                 </div>
             </div>
 
             <div id="image_input_container" style="margin-bottom:15px;">
-                <label style="font-size:12px; color:#666;">Atau Upload Referensi (Gemini):</label>
+                <label style="font-size:12px; color:#666;">Atau Upload Referensi (Gemini Only):</label>
                 <input type="file" id="file_gambar" accept="image/*" onchange="previewImage(this)">
                 <img id="imgPreview" class="preview-img">
-            </div>
-            <div id="groq_warning" class="hidden" style="background:#fff3cd; color:#856404; padding:10px; border-radius:5px; margin-bottom:15px; font-size:13px;">
-                ⚠️ <b>Mode Groq:</b> Gambar upload diabaikan.
             </div>
 
             <select id="cat_select" onchange="toggleManualCat()">
@@ -133,12 +134,40 @@
             </select>
 
             <label style="font-size:12px; font-weight:bold;">MODE PENULISAN:</label>
-            <select id="mode_penulisan" style="border: 2px solid #8e44ad; background: #fbf4ff; font-weight:bold;">
+            <select id="mode_penulisan" style="border: 2px solid #8e44ad; background: #fbf4ff; font-weight:bold; margin-bottom:15px;">
                 <option value="SPECIAL_OPS">😈 SPECIAL OPS (Text + Auto Inject Image H2)</option>
                 <option value="CLICKBAIT">🔥 SEO Clickbait (Viral)</option>
                 <option value="DEFAULT">📰 Berita Formal (Standard)</option>
                 <option value="TUTORIAL">🛠️ Tutorial / Panduan</option>
             </select>
+
+            <div style="background:#fff3cd; border:1px solid #ffeeba; padding:15px; border-radius:8px; margin-bottom:20px;">
+                <label style="font-size:12px; font-weight:bold; color:#856404;">🖼️ MANUAL INJECT GAMBAR (OPSIONAL):</label>
+                <p style="font-size:11px; margin:5px 0 10px; color:#666;">Jika diisi, script akan menggunakan gambar ini di dalam artikel (Bukan header). Jika kosong, script kembali ke mode Auto-Bing.</p>
+                
+                <div class="manual-grid">
+                    <div class="manual-item">
+                        <small>Gambar 1</small>
+                        <input type="file" accept="image/*" onchange="handleManualUpload(this, 0)">
+                        <img id="manual_thumb_0" class="manual-thumb">
+                    </div>
+                    <div class="manual-item">
+                        <small>Gambar 2</small>
+                        <input type="file" accept="image/*" onchange="handleManualUpload(this, 1)">
+                        <img id="manual_thumb_1" class="manual-thumb">
+                    </div>
+                    <div class="manual-item">
+                        <small>Gambar 3</small>
+                        <input type="file" accept="image/*" onchange="handleManualUpload(this, 2)">
+                        <img id="manual_thumb_2" class="manual-thumb">
+                    </div>
+                    <div class="manual-item">
+                        <small>Gambar 4</small>
+                        <input type="file" accept="image/*" onchange="handleManualUpload(this, 3)">
+                        <img id="manual_thumb_3" class="manual-thumb">
+                    </div>
+                </div>
+            </div>
             
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button onclick="generateContent(false)" id="btnPreview" class="btn btn-green" style="flex:1;">✨ Preview</button>
@@ -167,14 +196,14 @@
     // --- KONFIGURASI UTAMA ---
     const CLIENT_ID = '763331219607-vv1dd6jksep9utgs337idu67i57j6baa.apps.googleusercontent.com';
     const SCOPES = 'https://www.googleapis.com/auth/blogger';
-    
-    // --- LINK SAKTI GAS BING SCRAPER (HARDCODED) ---
     const BING_SCRAPER_URL = "https://script.google.com/macros/s/AKfycbx15NwwaBSAG9jIQPE5cFPupZ2aXubZMVQCet78Z0xQ2Eddbsp2N-6SAUSIh7X6n3dzuQ/exec";
     
     let tokenClient, accessToken = null;
     let globalBase64Img = ""; 
     let currentProvider = "GEMINI"; 
     let existingPosts = []; 
+    // ARRAY PENYIMPANAN GAMBAR MANUAL (Max 4)
+    let manualUploadedImages = [null, null, null, null]; 
 
     // --- INIT ---
     window.onload = function() {
@@ -206,6 +235,37 @@
 
     function makeCaption(text) {
         return text.split(/\s+/).slice(0, 12).join(" ");
+    }
+
+    // --- NEW: HANDLE MANUAL UPLOAD & COMPRESS ---
+    function handleManualUpload(input, index) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    // Compress Image to Base64 (Resize to max width 800px)
+                    const c = document.createElement('canvas'); const x = c.getContext('2d');
+                    const s = 800/img.width; 
+                    c.width = 800; c.height = img.height * s; 
+                    x.drawImage(img, 0, 0, c.width, c.height);
+                    
+                    // Simpan Base64 ke array
+                    const base64String = c.toDataURL('image/jpeg', 0.7); // Quality 70%
+                    manualUploadedImages[index] = base64String;
+
+                    // Show Preview Thumbnail
+                    const thumb = document.getElementById(`manual_thumb_${index}`);
+                    thumb.src = base64String;
+                    thumb.style.display = "block";
+                }
+            }
+            reader.readAsDataURL(input.files[0]);
+        } else {
+            manualUploadedImages[index] = null; // Clear if removed
+            document.getElementById(`manual_thumb_${index}`).style.display = "none";
+        }
     }
 
     // --- 1. FITUR FETCH INTERNAL LINK ---
@@ -241,7 +301,7 @@
         const apiKey = document.getElementById('api_key_input').value;
         const model = document.getElementById('model_select').value;
         const mode = document.getElementById('mode_penulisan').value; 
-        const targetLang = document.getElementById('target_lang').value; // Ambil Bahasa
+        const targetLang = document.getElementById('target_lang').value; 
         const autoBing = document.getElementById('auto_bing_image').checked;
         
         const btnMain = directToBlogger ? document.getElementById('btnDirect') : document.getElementById('btnPreview');
@@ -260,7 +320,7 @@
             sample.forEach(p => { internalLinkContext += `- Title: ${p.title} | URL: ${p.url}\n`; });
         }
 
-        // B. SIAPKAN PROMPT (DITERJEMAHKAN KE KONTEKS GLOBAL)
+        // B. SIAPKAN PROMPT
         let customPrompt = "";
         let baseStructure = "Use <h2>, <h3>, <p>, <ul>/<ol>. DO NOT use markdown like (**). Use <b> for bold.";
 
@@ -273,7 +333,7 @@
             - Strong Introduction (2-3 paragraphs).
             - MANDATORY: Use at least 4 specific Heading 2 (<h2>) for sub-topics.
             - Fill each sub-topic with detailed information.
-            - Conclusion that summarizes well.
+            - Akhiri artikel dengan kesimpulan yang natural TANPA menggunakan heading 'Kesimpulan' atau semacamnya. Buat penutup yang mengalir.
             - Avoid repetitive sentence patterns.
             `;
         } else if (mode === 'CLICKBAIT') {
@@ -286,9 +346,14 @@
         } else if (mode === 'DEFAULT') {
             customPrompt = `
             MODE: FORMAL NEWS / STANDARD.
-            STYLE: Formal, Journalistic, Objective.
+            STYLE: Formal, Journalistic, Objective but Natural.
             OUTPUT TITLE [TITLE]: Concise, Informative.
-            STRUCTURE: 5W+1H (Who, What, Where, When, Why, How).
+            STRUCTURE:
+            - Write a comprehensive article covering the 5W+1H elements (Who, What, Where, When, Why, How) implicitly within the paragraphs.
+            - DO NOT use explicit headers like 'Who', 'When', 'Why'.
+            - Ensure smooth transitions between paragraphs.
+            - The content must flow naturally like a professional news report or standard article.
+            - Akhiri artikel dengan kesimpulan yang natural TANPA menggunakan heading 'Kesimpulan' atau semacamnya. Buat penutup yang mengalir.
             `;
         } else if (mode === 'TUTORIAL') {
             customPrompt = `
@@ -299,7 +364,6 @@
             `;
         }
 
-        // --- INI KUNCI UTAMA FITUR POLYGLOT ---
         let prompt = `
         ACT AS A PROFESSIONAL BLOG WRITER.
         
@@ -361,9 +425,17 @@
                 const tagsMatch = resultText.match(/\[TAGS\]:(.*?)(<br>|\n|$)/i);
                 if(tagsMatch) { finalTags = tagsMatch[1].split(',').map(t => t.trim()); finalContent = finalContent.replace(tagsMatch[0], ''); }
 
-                // --- D. LOGIC SPECIAL OPS (AUTO INJECT IMAGE H2) ---
-                if (mode === 'SPECIAL_OPS') {
-                    btnMain.innerText = "🕵️ OPS: Menyuntikkan Gambar...";
+                // --- D. INJECTION LOGIC (HYBRID) ---
+                // Cek apakah ada gambar manual yang diupload
+                const hasManualImages = manualUploadedImages.some(img => img !== null);
+
+                if (hasManualImages) {
+                     // PRIORITAS 1: MANUAL INJECTION
+                    btnMain.innerText = "🖼️ Inject Gambar Manual...";
+                    finalContent = await injectManualImages(finalContent);
+                } else if (mode === 'SPECIAL_OPS') {
+                    // PRIORITAS 2: BING SCRAPER
+                    btnMain.innerText = "🕵️ OPS: Mencari Gambar Bing...";
                     finalContent = await injectImagesIntoContent(finalContent);
                 }
 
@@ -400,7 +472,34 @@
         btnMain.innerText = directToBlogger ? "🚀 Generate & Langsung Draft" : "✨ Preview";
     }
 
-    // --- 3. FUNGSI SUNTIK GAMBAR H2 ---
+    // --- FUNGSI INJECT GAMBAR MANUAL (BASE64) ---
+    async function injectManualImages(htmlContent) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(htmlContent, 'text/html');
+        const h2s = doc.querySelectorAll('h2');
+        
+        // Filter hanya slot yang ada gambarnya
+        const validImages = manualUploadedImages.filter(img => img !== null);
+        
+        // Loop H2 dan suntikkan gambar manual berurutan
+        for (let i = 0; i < h2s.length; i++) {
+            // Jika gambar manual habis, stop
+            if (i >= validImages.length) break; 
+
+            const h2Text = h2s[i].innerText;
+            const captionH2 = makeCaption(h2Text);
+            const div = doc.createElement('div');
+            div.style.textAlign = "center";
+            div.style.margin = "15px 0";
+            
+            // Pakai Base64 Image
+            div.innerHTML = `<img src="${validImages[i]}" alt="${h2Text}" style="max-width:100%; height:auto; border-radius:6px;" loading="lazy"><br><small><i>${captionH2}</i></small>`;
+            h2s[i].parentNode.insertBefore(div, h2s[i].nextSibling);
+        }
+        return doc.body.innerHTML;
+    }
+
+    // --- FUNGSI INJECT GAMBAR OTOMATIS (BING) ---
     async function injectImagesIntoContent(htmlContent) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(htmlContent, 'text/html');
@@ -558,6 +657,10 @@
         document.getElementById('judul').value = ""; document.getElementById('desc_gambar').value = "";
         document.getElementById('file_gambar').value = ""; document.getElementById('imgPreview').style.display = 'none';
         tinymce.get('kontenEditor').setContent(""); globalBase64Img = "";
+        // Reset Manual Images
+        manualUploadedImages = [null, null, null, null];
+        document.querySelectorAll('.manual-thumb').forEach(e => e.style.display = 'none');
+        document.querySelectorAll('.manual-item input').forEach(e => e.value = '');
     }
 
     function toggleManualCat() { document.getElementById('cat_manual').classList.toggle('hidden', document.getElementById('cat_select').value !== 'NEW'); }
