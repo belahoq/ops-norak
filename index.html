@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>👿 AI Blog Monster (Tier 1 Polyglot + Hybrid + Auto Index)</title>
+    <title>👿 AI Blog Monster (v35: Galeri Kegiatan + Auto Index)</title>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js"></script>
     <style>
@@ -147,6 +147,7 @@
             <label style="font-size:12px; font-weight:bold;">MODE PENULISAN:</label>
             <select id="mode_penulisan" style="border: 2px solid #8e44ad; background: #fbf4ff; font-weight:bold; margin-bottom:15px;">
                 <option value="SPECIAL_OPS">😈 SPECIAL OPS (Text + Auto Inject Image H2)</option>
+                <option value="GALERI_KEGIATAN">📸 Galeri Kegiatan (Deskripsi Foto Edukatif)</option>
                 <option value="CLICKBAIT">🔥 SEO Clickbait (Viral)</option>
                 <option value="DEFAULT">📰 Berita Formal (Standard)</option>
                 <option value="TUTORIAL">🛠️ Tutorial / Panduan</option>
@@ -432,6 +433,21 @@
             - Fill each sub-topic with detailed information.
             - Akhiri artikel dengan kesimpulan yang natural TANPA menggunakan heading 'Kesimpulan' atau semacamnya. Buat penutup yang mengalir.
             - Avoid repetitive sentence patterns.
+            `;
+        } else if (mode === 'GALERI_KEGIATAN') {
+            // --- NEW: FITUR GALERI KEGIATAN ---
+            customPrompt = `
+            MODE: GALERI KEGIATAN (PHOTO GALLERY DESCRIPTION).
+            STYLE: Professional, Educational, Formal.
+            OBJECTIVE: Write detailed descriptions for documentation photos regarding the TOPIC.
+            
+            STRUCTURE REQUIREMENTS:
+            - Create 4 distinct sub-topics related to the main event/topic using <h2> tags. (Example: <h2>Opening Ceremony</h2>, <h2>Main Activity</h2>, etc).
+            - Under each <h2>, write a descriptive paragraph explaining the activity educational value.
+            - MAX 200 words per section.
+            - STRICTLY NO INTRODUCTION (Do not start with "Here is the article...").
+            - STRICTLY NO CONCLUSION or SUMMARY at the end.
+            - Start directly with the first <h2>.
             `;
         } else if (mode === 'CLICKBAIT') {
             customPrompt = `
